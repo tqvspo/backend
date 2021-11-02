@@ -1,0 +1,64 @@
+version: "3"
+services:
+    strapi:
+        image: strapi/strapi
+        restart: always
+        environment:
+            DATABASE_CLIENT: postgres
+            DATABASE_NAME: pacman
+            DATABASE_HOST: postgres
+            DATABASE_PORT: 5432
+            DATABASE_USERNAME: postgres
+            DATABASE_PASSWORD: postgres
+        volumes:
+            - ./app:/srv/app
+        ports:
+            - "1337:1337"
+        depends_on:
+            - postgres
+        networks:
+            - pacman
+
+    postgres:
+        image: postgres:13-alpine
+        restart: always
+        environment:
+            POSTGRES_DB: pacman
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+        volumes:
+            - ./data:/var/lib/postgresql/data
+        networks:
+            - pacman
+
+    graphql-engine:
+        image: hasura/graphql-engine:v2.0.9
+        restart: always
+        ports:
+            - "8088:8080"
+        depends_on:
+            - "postgres"
+        environment:
+            ## postgres database to store Hasura metadata
+            HASURA_GRAPHQL_METADATA_DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
+            ## this env var can be used to add the above postgres database to Hasura as a data source. this can be removed/updated based on your needs
+            PG_DATABASE_URL: postgres://postgres:postgres@postgres:5432/pacman
+            ## enable the console served by server
+            HASURA_GRAPHQL_ENABLE_CONSOLE: "true" # set to "false" t`1o disable console
+            ## enable debugging mode. It is recommended to disable this in production
+            HASURA_GRAPHQL_DEV_MODE: "true"
+            HASURA_GRAPHQL_ENABLED_LOG_TYPES: startup, http-log, webhook-log, websocket-log, query-log
+            ## uncomment next line to set an admin secret
+        networks:
+            - pacman
+
+    adminer:
+        image: adminer
+        restart: always
+        networks:
+            - pacman
+        ports:
+            - 8080:8080
+networks:
+    pacman:
+
